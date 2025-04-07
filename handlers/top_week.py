@@ -18,7 +18,7 @@ def format_time(minutes):
     else:
         return f"{mins} мин"
 
-@router.message(Command("top-week"))
+@router.message(Command("week"))
 async def top_week_handler(message: types.Message):
     """
     Формирует лидерборд участников по времени кодинга за последние 7 дней.

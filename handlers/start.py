@@ -72,7 +72,7 @@ async def start_group_handler(message: types.Message):
     await message.answer(
         f"Для регистрации и настройки WakaTime API ключа, пожалуйста, напишите мне в личные сообщения: "
         f"https://t.me/{bot_username}\n\n"
-        f"После регистрации вы сможете использовать команды /top и /week для просмотра статистики."
+        f"После регистрации вы сможете использовать команды /day и /week для просмотра статистики."
     )
 
 
@@ -161,7 +161,7 @@ async def api_key_handler(message: types.Message, state: FSMContext):
     await message.answer(
         "WakaTime API ключ сохранён! Регистрация успешно завершена.\n\n"
         "Теперь используй команды:\n"
-        "/top - показать топ по времени кодинга за сегодня\n"
+        "/day - показать топ по времени кодинга за сегодня\n"
         "/week - показать топ по времени кодинга за неделю"
     )
 

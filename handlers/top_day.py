@@ -18,7 +18,7 @@ def format_time(minutes):
     else:
         return f"{mins} мин"
 
-@router.message(Command("top-day"))
+@router.message(Command("day"))
 async def top_day_handler(message: types.Message):
     """
     Формирует лидерборд участников по времени кодинга за сегодня.
