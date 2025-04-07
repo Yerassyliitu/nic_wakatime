@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 
 async def get_coding_time_today(waka_key: str) -> float:
     """
-    Запрашивает у WakaTime суммарное время (в минутах) по категории 'Coding'
-    за сегодняшний день.
+    Запрашивает у WakaTime суммарное время (в минутах) кодирования
+    за сегодняшний день. Учитывает все категории.
 
     Аутентификация осуществляется посредством передачи API ключа в параметре запроса.
     """
@@ -21,18 +21,29 @@ async def get_coding_time_today(waka_key: str) -> float:
                 return 0.0
             data = await resp.json()
 
-    total_seconds = 0
-    for day in data.get("data", []):
-        for category in day.get("categories", []):
-            if category.get("name") == "Coding":
-                total_seconds += category.get("total_seconds", 0)
-    return total_seconds / 60.0
+    # Если данных нет или структура ответа не соответствует ожидаемой
+    if not data.get("data") or not isinstance(data["data"], list) or not data["data"]:
+        logging.warning(f"Пустой или некорректный ответ от WakaTime API")
+        return 0.0
+
+    # Берём суммарное время (grand_total) вместо фильтрации по категориям
+    try:
+        day_data = data["data"][0]  # Данные за текущий день
+        total_seconds = day_data.get("grand_total", {}).get("total_seconds", 0)
+        
+        # Выводим детальную информацию для отладки
+        logging.info(f"WakaTime API ответ: {total_seconds} секунд за сегодня")
+        
+        return total_seconds / 60.0
+    except (KeyError, IndexError, TypeError) as e:
+        logging.error(f"Ошибка при обработке ответа WakaTime API: {e}")
+        return 0.0
 
 
 async def get_coding_time_week(waka_key: str) -> float:
     """
-    Запрашивает у WakaTime суммарное время (в минутах) по категории 'Coding'
-    за последние 7 дней (включая сегодняшний день).
+    Запрашивает у WakaTime суммарное время (в минутах) кодирования
+    за последние 7 дней (включая сегодняшний день). Учитывает все категории.
 
     :param waka_key: API ключ пользователя.
     :return: Общее количество минут кодинга за неделю.
@@ -53,9 +64,22 @@ async def get_coding_time_week(waka_key: str) -> float:
                 return 0.0
             data = await resp.json()
 
+    # Если данных нет или структура ответа не соответствует ожидаемой
+    if not data.get("data") or not isinstance(data["data"], list):
+        logging.warning(f"Пустой или некорректный ответ от WakaTime API")
+        return 0.0
+
+    # Суммируем grand_total.total_seconds за все дни недели
     total_seconds = 0
-    for day in data.get("data", []):
-        for category in day.get("categories", []):
-            if category.get("name") == "Coding":
-                total_seconds += category.get("total_seconds", 0)
-    return total_seconds / 60.0
+    try:
+        # Итерируемся по дням недели в ответе
+        for day_data in data["data"]:
+            total_seconds += day_data.get("grand_total", {}).get("total_seconds", 0)
+        
+        # Выводим детальную информацию для отладки
+        logging.info(f"WakaTime API ответ: {total_seconds} секунд за неделю")
+        
+        return total_seconds / 60.0
+    except (KeyError, TypeError) as e:
+        logging.error(f"Ошибка при обработке ответа WakaTime API: {e}")
+        return 0.0
