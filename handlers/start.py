@@ -1,8 +1,8 @@
 from aiogram import Router, types, F
-from aiogram.filters import Command, ChatTypeFilter
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import FSInputFile, ChatType
+from aiogram.types import FSInputFile
 from db import save_contact, save_wakatime_key
 import os
 import logging
@@ -54,7 +54,7 @@ async def start_registration(message: types.Message, state: FSMContext):
     await state.set_state(RegistrationStates.waiting_for_contact)
 
 
-@router.message(Command("start"), ChatTypeFilter(ChatType.PRIVATE))
+@router.message(Command("start"), F.chat.type == "private")
 async def start_handler(message: types.Message, state: FSMContext):
     """
     При запуске регистрации сохраняет username (из профиля) и отправляет клавиатуру
@@ -63,7 +63,7 @@ async def start_handler(message: types.Message, state: FSMContext):
     await start_registration(message, state)
 
 
-@router.message(Command("start"), ~ChatTypeFilter(ChatType.PRIVATE))
+@router.message(Command("start"), ~(F.chat.type == "private"))
 async def start_group_handler(message: types.Message):
     """
     Обработчик команды /start в групповом чате
@@ -72,11 +72,11 @@ async def start_group_handler(message: types.Message):
     await message.answer(
         f"Для регистрации и настройки WakaTime API ключа, пожалуйста, напишите мне в личные сообщения: "
         f"https://t.me/{bot_username}\n\n"
-        f"После регистрации вы сможете использовать команды /top_day и /top_week для просмотра статистики."
+        f"После регистрации вы сможете использовать команды /top и /week для просмотра статистики."
     )
 
 
-@router.message(Command("register"), ChatTypeFilter(ChatType.PRIVATE))
+@router.message(Command("register"), F.chat.type == "private")
 async def register_handler(message: types.Message, state: FSMContext):
     """
     Запускает процесс регистрации заново
@@ -84,7 +84,7 @@ async def register_handler(message: types.Message, state: FSMContext):
     await start_registration(message, state)
 
 
-@router.message(Command("register"), ~ChatTypeFilter(ChatType.PRIVATE))
+@router.message(Command("register"), ~(F.chat.type == "private"))
 async def register_group_handler(message: types.Message):
     """
     Обработчик команды /register в групповом чате
@@ -96,7 +96,7 @@ async def register_group_handler(message: types.Message):
     )
 
 
-@router.message(RegistrationStates.waiting_for_contact, F.content_type.in_({"contact"}))
+@router.message(RegistrationStates.waiting_for_contact, F.content_type.in_({'contact'}))
 async def contact_handler(message: types.Message, state: FSMContext):
     """
     Обрабатывает полученный контакт, сохраняет username и запрашивает API ключ.

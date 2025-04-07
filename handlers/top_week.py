@@ -1,6 +1,5 @@
-from aiogram import Router, types
-from aiogram.filters import Command, ChatTypeFilter
-from aiogram.types import ChatType
+from aiogram import Router, types, F
+from aiogram.filters import Command
 from db import get_all_users
 from wakatime_client import get_coding_time_week
 
@@ -19,7 +18,7 @@ def format_time(minutes):
     else:
         return f"{mins} мин"
 
-@router.message(Command("top_week"))
+@router.message(Command("top-week"))
 async def top_week_handler(message: types.Message):
     """
     Формирует лидерборд участников по времени кодинга за последние 7 дней.
@@ -27,14 +26,12 @@ async def top_week_handler(message: types.Message):
     Работает как в личных сообщениях, так и в группах.
     """
     # Проверяем, не групповой ли это чат и есть ли у пользователя права на просмотр
-    if not message.chat.type == ChatType.PRIVATE:
-        # В будущем можно добавить проверку админских прав пользователя в группе
-        pass
+    is_private = message.chat.type == "private"
     
     users = await get_all_users()
     if not users:
         # Изменяем сообщение для групп
-        if message.chat.type == ChatType.PRIVATE:
+        if is_private:
             await message.answer("Пока никто не добавил свой WakaTime API ключ. Используй /register.")
         else:
             bot_username = (await message.bot.get_me()).username
