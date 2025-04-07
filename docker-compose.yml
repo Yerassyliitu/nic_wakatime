@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: some_nic_admin
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: niciwaka
+    ports:
+      - "5433:5432"
+
+  bot:
+    build: .
+    depends_on:
+      - db
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    command: python main.py
