@@ -1,8 +1,8 @@
 from aiogram import Router, types, F
-from aiogram.filters import Command
+from aiogram.filters import Command, ChatTypeFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, ChatType
 from db import save_contact, save_wakatime_key
 import os
 import logging
@@ -54,7 +54,7 @@ async def start_registration(message: types.Message, state: FSMContext):
     await state.set_state(RegistrationStates.waiting_for_contact)
 
 
-@router.message(Command("start"))
+@router.message(Command("start"), ChatTypeFilter(ChatType.PRIVATE))
 async def start_handler(message: types.Message, state: FSMContext):
     """
     При запуске регистрации сохраняет username (из профиля) и отправляет клавиатуру
@@ -63,12 +63,37 @@ async def start_handler(message: types.Message, state: FSMContext):
     await start_registration(message, state)
 
 
-@router.message(Command("register"))
+@router.message(Command("start"), ~ChatTypeFilter(ChatType.PRIVATE))
+async def start_group_handler(message: types.Message):
+    """
+    Обработчик команды /start в групповом чате
+    """
+    bot_username = (await message.bot.get_me()).username
+    await message.answer(
+        f"Для регистрации и настройки WakaTime API ключа, пожалуйста, напишите мне в личные сообщения: "
+        f"https://t.me/{bot_username}\n\n"
+        f"После регистрации вы сможете использовать команды /top_day и /top_week для просмотра статистики."
+    )
+
+
+@router.message(Command("register"), ChatTypeFilter(ChatType.PRIVATE))
 async def register_handler(message: types.Message, state: FSMContext):
     """
     Запускает процесс регистрации заново
     """
     await start_registration(message, state)
+
+
+@router.message(Command("register"), ~ChatTypeFilter(ChatType.PRIVATE))
+async def register_group_handler(message: types.Message):
+    """
+    Обработчик команды /register в групповом чате
+    """
+    bot_username = (await message.bot.get_me()).username
+    await message.answer(
+        f"Для регистрации и настройки WakaTime API ключа, пожалуйста, напишите мне в личные сообщения: "
+        f"https://t.me/{bot_username}"
+    )
 
 
 @router.message(RegistrationStates.waiting_for_contact, F.content_type.in_({"contact"}))
@@ -90,7 +115,7 @@ async def contact_handler(message: types.Message, state: FSMContext):
             f"Теперь отправь мне свой WakaTime API ключ.\n\n"
             f"Для этого:\n"
             f"1. Зайдите на страницу: https://wakatime.com/settings/account\n"
-            f"2. В самом верху в разделе API Keys есть Secret API Key, нажмите на него и увидите ключ(скриншот выше)\n"
+            f"2. Прокрутите вниз до раздела API Key\n"
             f"3. Скопируйте ключ и отправьте его мне"
         )
 
