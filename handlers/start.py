@@ -115,7 +115,7 @@ async def contact_handler(message: types.Message, state: FSMContext):
             f"Теперь отправь мне свой WakaTime API ключ.\n\n"
             f"Для этого:\n"
             f"1. Зайдите на страницу: https://wakatime.com/settings/account\n"
-            f"2. Прокрутите вниз до раздела API Key\n"
+            f"2. В самом верху есть раздел API Key\n"
             f"3. Скопируйте ключ и отправьте его мне"
         )
 
