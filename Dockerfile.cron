@@ -1,28 +1,29 @@
-FROM python:3.10-alpine
+FROM python:3.10-slim
 
 WORKDIR /app
 
-# Устанавливаем cron и другие необходимые пакеты
-RUN apk add --no-cache dcron tzdata bash
+# Устанавливаем supervisor и зависимости
+RUN apt-get update && apt-get install -y \
+    supervisor \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем зависимости
+# Устанавливаем зависимости Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем код приложения
 COPY . .
 
+# Создаем директорию для логов
+RUN mkdir -p /var/log/supervisor /var/log/app
+RUN chmod -R 777 /var/log
+
+# Настраиваем supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Делаем скрипты исполняемыми
 RUN chmod +x update_month_cache.py update_year_cache.py
 
-# Создаем директорию для логов
-RUN mkdir -p /var/log/cron
-RUN touch /var/log/cron.log
-RUN chmod 777 /var/log/cron.log
-
-# Настраиваем crontab (указываем полные пути)
-RUN echo "0 * * * * cd /app && /usr/local/bin/python /app/update_month_cache.py >> /var/log/cron.log 2>&1" > /etc/crontabs/root
-RUN echo "0 0 * * * cd /app && /usr/local/bin/python /app/update_year_cache.py >> /var/log/cron.log 2>&1" >> /etc/crontabs/root
-
-# Точка входа для запуска cron
-ENTRYPOINT ["crond", "-f", "-l", "8"] 
+# Запускаем supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 

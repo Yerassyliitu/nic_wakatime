@@ -1,14 +1,31 @@
 import json
 import logging
 import os
+import sys
 import redis
+import traceback
 from datetime import datetime
+
+# Настройка логирования, если еще не настроено
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
 
 # Получаем URL Redis из переменной окружения или используем значение по умолчанию
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+logging.info(f"Используем Redis URL: {REDIS_URL}")
 
 # Создаем соединение с Redis
-redis_client = redis.from_url(REDIS_URL)
+try:
+    redis_client = redis.from_url(REDIS_URL)
+except Exception as e:
+    logging.error(f"Ошибка создания клиента Redis: {e}\n{traceback.format_exc()}")
+    redis_client = None
 
 # Ключи для кэша
 MONTH_CACHE_KEY = "wakatime:month_stats"
@@ -20,12 +37,23 @@ YEAR_CACHE_TTL = 86400  # 24 часа
 
 def init_redis():
     """Проверяем соединение с Redis и логируем результат"""
+    global redis_client
+    
+    # Если клиент не инициализирован, пробуем создать заново
+    if redis_client is None:
+        try:
+            redis_client = redis.from_url(REDIS_URL)
+        except Exception as e:
+            logging.error(f"Ошибка создания клиента Redis: {e}\n{traceback.format_exc()}")
+            return False
+    
+    # Проверяем соединение
     try:
         redis_client.ping()
         logging.info(f"Успешное подключение к Redis: {REDIS_URL}")
         return True
     except redis.RedisError as e:
-        logging.error(f"Ошибка подключения к Redis: {e}")
+        logging.error(f"Ошибка подключения к Redis: {e}\n{traceback.format_exc()}")
         return False
 
 def save_month_stats(stats_data):
@@ -35,6 +63,10 @@ def save_month_stats(stats_data):
     Args:
         stats_data: Список кортежей (username, minutes)
     """
+    if not init_redis():
+        logging.error("Redis не инициализирован. Невозможно сохранить данные.")
+        return False
+        
     data_to_save = {
         "timestamp": datetime.now().isoformat(),
         "data": [(username, float(minutes)) for username, minutes in stats_data]
@@ -48,7 +80,7 @@ def save_month_stats(stats_data):
         logging.info(f"Месячная статистика обновлена в кэше, {len(stats_data)} записей")
         return True
     except Exception as e:
-        logging.error(f"Ошибка при сохранении месячной статистики: {e}")
+        logging.error(f"Ошибка при сохранении месячной статистики: {e}\n{traceback.format_exc()}")
         return False
 
 def get_month_stats():
@@ -58,6 +90,10 @@ def get_month_stats():
     Returns:
         Список кортежей (username, minutes) или None, если кэш отсутствует
     """
+    if not init_redis():
+        logging.error("Redis не инициализирован. Невозможно получить данные.")
+        return None
+        
     try:
         data = redis_client.get(MONTH_CACHE_KEY)
         if not data:
@@ -81,7 +117,7 @@ def get_month_stats():
         
         return stats
     except Exception as e:
-        logging.error(f"Ошибка при получении месячной статистики из кэша: {e}")
+        logging.error(f"Ошибка при получении месячной статистики из кэша: {e}\n{traceback.format_exc()}")
         return None
 
 def save_year_stats(stats_data):
@@ -91,6 +127,10 @@ def save_year_stats(stats_data):
     Args:
         stats_data: Список кортежей (username, minutes)
     """
+    if not init_redis():
+        logging.error("Redis не инициализирован. Невозможно сохранить данные.")
+        return False
+        
     data_to_save = {
         "timestamp": datetime.now().isoformat(),
         "data": [(username, float(minutes)) for username, minutes in stats_data]
@@ -104,7 +144,7 @@ def save_year_stats(stats_data):
         logging.info(f"Годовая статистика обновлена в кэше, {len(stats_data)} записей")
         return True
     except Exception as e:
-        logging.error(f"Ошибка при сохранении годовой статистики: {e}")
+        logging.error(f"Ошибка при сохранении годовой статистики: {e}\n{traceback.format_exc()}")
         return False
 
 def get_year_stats():
@@ -114,6 +154,10 @@ def get_year_stats():
     Returns:
         Список кортежей (username, minutes) или None, если кэш отсутствует
     """
+    if not init_redis():
+        logging.error("Redis не инициализирован. Невозможно получить данные.")
+        return None
+        
     try:
         data = redis_client.get(YEAR_CACHE_KEY)
         if not data:
@@ -137,5 +181,5 @@ def get_year_stats():
         
         return stats
     except Exception as e:
-        logging.error(f"Ошибка при получении годовой статистики из кэша: {e}")
+        logging.error(f"Ошибка при получении годовой статистики из кэша: {e}\n{traceback.format_exc()}")
         return None 

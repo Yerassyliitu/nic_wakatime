@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 Скрипт для периодического обновления кэша годовой статистики.
-Запускается через cron каждый день в 00:00.
+Запускается через supervisor каждый день в 00:00.
 """
 import asyncio
 import logging
 import os
 import sys
+import traceback
 
 from db import init_db_pool, get_all_users
 from wakatime_client import get_coding_time_year
@@ -31,7 +32,7 @@ async def update_year_cache():
         await init_db_pool(DATABASE_URL)
         logging.info("Подключение к базе данных установлено")
     except Exception as e:
-        logging.error(f"Ошибка подключения к базе данных: {e}")
+        logging.error(f"Ошибка подключения к базе данных: {e}\n{traceback.format_exc()}")
         return
     
     # Проверяем подключение к Redis
@@ -40,9 +41,13 @@ async def update_year_cache():
         return
     
     # Получаем список пользователей
-    users = await get_all_users()
-    if not users:
-        logging.warning("Не найдено пользователей для обновления статистики")
+    try:
+        users = await get_all_users()
+        if not users:
+            logging.warning("Не найдено пользователей для обновления статистики")
+            return
+    except Exception as e:
+        logging.error(f"Ошибка получения списка пользователей: {e}\n{traceback.format_exc()}")
         return
     
     # Собираем статистику
@@ -58,7 +63,7 @@ async def update_year_cache():
             logging.info(f"Статистика @{username}: {coding_minutes} минут за год")
             leaderboard.append((username, coding_minutes))
         except Exception as e:
-            logging.error(f"Ошибка получения годовой статистики для @{username}: {e}")
+            logging.error(f"Ошибка получения годовой статистики для @{username}: {e}\n{traceback.format_exc()}")
     
     # Сохраняем в кэш
     if leaderboard:
@@ -75,8 +80,13 @@ async def update_year_cache():
 
 if __name__ == "__main__":
     try:
+        # Установим текущую директорию на директорию скрипта для правильной загрузки модулей
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(script_dir)
+        
+        # Запустим обновление кэша
         asyncio.run(update_year_cache())
         logging.info("Скрипт обновления годового кэша завершен успешно")
     except Exception as e:
-        logging.error(f"Ошибка при выполнении скрипта обновления годового кэша: {e}")
+        logging.error(f"Ошибка при выполнении скрипта обновления годового кэша: {e}\n{traceback.format_exc()}")
         sys.exit(1) 

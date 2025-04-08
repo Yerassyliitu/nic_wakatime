@@ -39,7 +39,8 @@ services:
       - "8080:8080"
     command: sh -c "wait-for-it.sh db:5432 -t 60 -- python main.py"
 
-  cron:
+  scheduler:
+    container_name: wakatime-scheduler
     build:
       context: .
       dockerfile: Dockerfile.cron
@@ -54,5 +55,4 @@ services:
       DATABASE_URL: postgresql://some_nic_admin:123@db:5432/nicwaka
       REDIS_URL: redis://redis:6379/0
     volumes:
-      - ./logs:/var/log
-    privileged: true
+      - ./logs:/var/log/app
