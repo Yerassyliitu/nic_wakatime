@@ -12,6 +12,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:alpine
@@ -22,6 +24,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - redis_data:/data
 
   bot:
     build: .
@@ -56,3 +60,13 @@ services:
       REDIS_URL: redis://redis:6379/0
     volumes:
       - ./logs:/var/log/app
+
+volumes:
+  postgres_data:
+    name: nicwaka_postgres_data
+    external: false
+  redis_data:
+    name: nicwaka_redis_data
+    external: false
+    
+
