@@ -1,0 +1,25 @@
+FROM python:3.10-alpine
+
+WORKDIR /app
+
+# Устанавливаем cron
+RUN apk add --no-cache dcron tzdata
+
+# Устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем код приложения
+COPY . .
+
+# Делаем скрипты исполняемыми
+RUN chmod +x update_month_cache.py update_year_cache.py
+
+# Настраиваем crontab
+RUN mkdir -p /etc/crontabs
+RUN echo "0 * * * * cd /app && python /app/update_month_cache.py >> /var/log/cron.log 2>&1" > /etc/crontabs/root
+RUN echo "0 0 * * * cd /app && python /app/update_year_cache.py >> /var/log/cron.log 2>&1" >> /etc/crontabs/root
+RUN touch /var/log/cron.log
+
+# Запускаем cron
+CMD crond -f -l 8 
