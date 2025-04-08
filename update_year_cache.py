@@ -55,12 +55,17 @@ async def update_year_cache():
         try:
             logging.info(f"Получаем годовую статистику для @{username}")
             coding_minutes = await get_coding_time_year(waka_key)
+            logging.info(f"Статистика @{username}: {coding_minutes} минут за год")
             leaderboard.append((username, coding_minutes))
         except Exception as e:
             logging.error(f"Ошибка получения годовой статистики для @{username}: {e}")
     
     # Сохраняем в кэш
     if leaderboard:
+        logging.info(f"Собрана годовая статистика для {len(leaderboard)} пользователей. Сохраняем в кэш...")
+        for username, minutes in leaderboard:
+            logging.info(f"  @{username}: {minutes} минут")
+            
         if save_year_stats(leaderboard):
             logging.info(f"Годовая статистика успешно обновлена для {len(leaderboard)} пользователей")
         else:
@@ -69,4 +74,9 @@ async def update_year_cache():
         logging.warning("Нет данных для сохранения в кэш")
 
 if __name__ == "__main__":
-    asyncio.run(update_year_cache()) 
+    try:
+        asyncio.run(update_year_cache())
+        logging.info("Скрипт обновления годового кэша завершен успешно")
+    except Exception as e:
+        logging.error(f"Ошибка при выполнении скрипта обновления годового кэша: {e}")
+        sys.exit(1) 

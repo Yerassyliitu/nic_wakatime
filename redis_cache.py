@@ -37,7 +37,7 @@ def save_month_stats(stats_data):
     """
     data_to_save = {
         "timestamp": datetime.now().isoformat(),
-        "data": [(username, minutes) for username, minutes in stats_data]
+        "data": [(username, float(minutes)) for username, minutes in stats_data]
     }
     try:
         redis_client.setex(
@@ -61,14 +61,23 @@ def get_month_stats():
     try:
         data = redis_client.get(MONTH_CACHE_KEY)
         if not data:
+            logging.warning("Кэш месячной статистики не найден")
             return None
         
         parsed_data = json.loads(data)
         timestamp = datetime.fromisoformat(parsed_data["timestamp"])
         stats = parsed_data["data"]
         
+        # Убедимся, что вернулся корректный формат данных
+        if not stats or not isinstance(stats, list):
+            logging.error(f"Неверный формат данных в кэше месячной статистики: {stats}")
+            return None
+            
+        # Преобразуем JSON данные обратно в кортежи с числовыми значениями
+        stats = [(username, float(minutes)) for username, minutes in stats]
+        
         age_seconds = (datetime.now() - timestamp).total_seconds()
-        logging.info(f"Данные из кэша за месяц получены, возраст: {age_seconds:.1f} сек")
+        logging.info(f"Данные из кэша за месяц получены, возраст: {age_seconds:.1f} сек, записей: {len(stats)}")
         
         return stats
     except Exception as e:
@@ -84,7 +93,7 @@ def save_year_stats(stats_data):
     """
     data_to_save = {
         "timestamp": datetime.now().isoformat(),
-        "data": [(username, minutes) for username, minutes in stats_data]
+        "data": [(username, float(minutes)) for username, minutes in stats_data]
     }
     try:
         redis_client.setex(
@@ -108,14 +117,23 @@ def get_year_stats():
     try:
         data = redis_client.get(YEAR_CACHE_KEY)
         if not data:
+            logging.warning("Кэш годовой статистики не найден")
             return None
         
         parsed_data = json.loads(data)
         timestamp = datetime.fromisoformat(parsed_data["timestamp"])
         stats = parsed_data["data"]
         
+        # Убедимся, что вернулся корректный формат данных
+        if not stats or not isinstance(stats, list):
+            logging.error(f"Неверный формат данных в кэше годовой статистики: {stats}")
+            return None
+        
+        # Преобразуем JSON данные обратно в кортежи с числовыми значениями
+        stats = [(username, float(minutes)) for username, minutes in stats]
+        
         age_seconds = (datetime.now() - timestamp).total_seconds()
-        logging.info(f"Данные из кэша за год получены, возраст: {age_seconds:.1f} сек")
+        logging.info(f"Данные из кэша за год получены, возраст: {age_seconds:.1f} сек, записей: {len(stats)}")
         
         return stats
     except Exception as e:

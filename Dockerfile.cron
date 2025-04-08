@@ -2,8 +2,8 @@ FROM python:3.10-alpine
 
 WORKDIR /app
 
-# Устанавливаем cron
-RUN apk add --no-cache dcron tzdata
+# Устанавливаем cron и другие необходимые пакеты
+RUN apk add --no-cache dcron tzdata bash
 
 # Устанавливаем зависимости
 COPY requirements.txt .
@@ -15,11 +15,14 @@ COPY . .
 # Делаем скрипты исполняемыми
 RUN chmod +x update_month_cache.py update_year_cache.py
 
-# Настраиваем crontab
-RUN mkdir -p /etc/crontabs
-RUN echo "0 * * * * cd /app && python /app/update_month_cache.py >> /var/log/cron.log 2>&1" > /etc/crontabs/root
-RUN echo "0 0 * * * cd /app && python /app/update_year_cache.py >> /var/log/cron.log 2>&1" >> /etc/crontabs/root
+# Создаем директорию для логов
+RUN mkdir -p /var/log/cron
 RUN touch /var/log/cron.log
+RUN chmod 777 /var/log/cron.log
 
-# Запускаем cron
-CMD crond -f -l 8 
+# Настраиваем crontab (указываем полные пути)
+RUN echo "0 * * * * cd /app && /usr/local/bin/python /app/update_month_cache.py >> /var/log/cron.log 2>&1" > /etc/crontabs/root
+RUN echo "0 0 * * * cd /app && /usr/local/bin/python /app/update_year_cache.py >> /var/log/cron.log 2>&1" >> /etc/crontabs/root
+
+# Точка входа для запуска cron
+ENTRYPOINT ["crond", "-f", "-l", "8"] 

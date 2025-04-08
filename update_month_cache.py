@@ -55,12 +55,17 @@ async def update_month_cache():
         try:
             logging.info(f"Получаем статистику для @{username}")
             coding_minutes = await get_coding_time_month(waka_key)
+            logging.info(f"Статистика @{username}: {coding_minutes} минут за месяц")
             leaderboard.append((username, coding_minutes))
         except Exception as e:
             logging.error(f"Ошибка получения статистики для @{username}: {e}")
     
     # Сохраняем в кэш
     if leaderboard:
+        logging.info(f"Собрана статистика для {len(leaderboard)} пользователей. Сохраняем в кэш...")
+        for username, minutes in leaderboard:
+            logging.info(f"  @{username}: {minutes} минут")
+            
         if save_month_stats(leaderboard):
             logging.info(f"Месячная статистика успешно обновлена для {len(leaderboard)} пользователей")
         else:
@@ -69,4 +74,9 @@ async def update_month_cache():
         logging.warning("Нет данных для сохранения в кэш")
 
 if __name__ == "__main__":
-    asyncio.run(update_month_cache()) 
+    try:
+        asyncio.run(update_month_cache())
+        logging.info("Скрипт обновления месячного кэша завершен успешно")
+    except Exception as e:
+        logging.error(f"Ошибка при выполнении скрипта обновления месячного кэша: {e}")
+        sys.exit(1) 
